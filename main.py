@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from graphviz import Digraph
 from states import *
 import string
@@ -16,17 +17,11 @@ def main():
         description = string.replace(description, '-1', '-')
         description = string.replace(description, '1', '+')
         dot.node(str(i), description)
-        #dot.node(str(i), str(state))
-
-        # to only show numbers, use this:
-        # dot.node(str(i), str(j))
-        # j += 1
 
     for i, s in enumerate(g):
 
         print "%d) %s" % (i + 1, s)
         for x in s.generate_successors():
-            # print "--> %d | %s" % (g.index(x) + 1, x)
 
             dot.edge(str(i), str(g.index(x)))
     print "# states = %d" % len(g)
