@@ -1,0 +1,37 @@
+Knowledge Representation - Qualitative Reasoning Assignment
+Pasquale Muscettola, Mathijs Mul
+
+Self created causal model and state-graph (A) (2 points)
+
+files:
+- causal_model.png
+- state_graph.png
+- values.png
+- settings.png
+
+We used Garp to visualize the causal model (causal_model.png) and the corresponding state-graph (state_graph.png). We modelled inflow as an exogenous variable with random changes. The value history (values.png) shows the states to which the numbers in the state-graph correspond. The settings (settings.png) show which settings we used. We chose not to consider second-order derivatives, so in the settings this option is deselected. This allows for some transitions that may not be physically possible, but this is the behaviour that we choose to model, so with our code we will aim to produce a model that behaves accordingly. 
+
+Algorithm working and well described (B & D) (2 points)
+
+files:
+- main.py
+- states.py
+
+We wrote a Python script to model the bathtub dynamics, representing Inflow, Volume and Outflow as different classes. The algorithm works as follows: 
+1. It generates all possible states based on the quantity spaces of the different variables. 
+2. It prunes the states of (1) to the set of valid states by applying the different validity rules, which are the value-correspondence, proportionality and influence constraints as specified in the exercise statement. 
+3. For each valid state, it generates all possible successor states, i.e. all valid states as computed in (2). 
+4. These successor states are then pruned to only valid successors, which happens by checking if continuity rules are met, if a point has changed according to the derivative and if the derivate of the exogenous Inflow variable has changed in an admissible way. In the code (and in the trace) it is indicated which rules are applied where. 
+
+Algorithm output state-graph and well described (2 points)
+
+files:
+- state-graph_output.pdf
+
+Using Graphviz (installation of which is requried in order to be able to run the code), main.py outputs a PDF containing the state graph as computed by our algorithm. Every node shows the state that it represents in the following format: ‘I[x,x] | V[x,x] | O[x,x]’. Checking with the Garp network of state_graph.png shows that the algorithm outputs exactly the same state graph. 
+
+Insightful trace (C) (2 points)
+
+If the algorithm is run, then a trace is printed that shows exactly which states and transitions are pruned at which points. Thus, it gives an overview of the way in which the state graph is produced. 
+
+
