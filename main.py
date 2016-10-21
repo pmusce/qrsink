@@ -1,6 +1,7 @@
 from graphviz import Digraph
 from states import *
 
+
 def main():
     dot = Digraph(comment='Transition Graph')
 

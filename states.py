@@ -182,8 +182,8 @@ class State():
                 return False
 
             # point to interval and interval to point at the same time
-            if not self.inflow.is_point() and self.inflow.der != succ.inflow.der:
-                return False
+            # if not self.inflow.is_point() and self.inflow.der != succ.inflow.der:
+            #     return False
             if not self.outflow.is_point() and self.outflow.der != succ.outflow.der:
                 return False
 
@@ -194,8 +194,8 @@ class State():
                 return False
 
             # point to interval and interval to point at the same time
-            if not self.inflow.is_point() and self.inflow.der != succ.inflow.der:
-                return False
+            # if not self.inflow.is_point() and self.inflow.der != succ.inflow.der:
+            #     return False
             if not self.volume.is_point() and self.volume.der != succ.volume.der:
                 return False
 
@@ -206,8 +206,8 @@ class State():
         graph = []
         for i_val in Inflow.domain:
             for v_val in Volume.domain:
-                for v_der in Volume.der_domain:
-                    for i_der in Inflow.der_domain:
+                for i_der in Inflow.der_domain:
+                    for v_der in Volume.der_domain:
                         for o_val, o_der in [(o_val, o_der) for o_val in Outflow.domain for o_der in Outflow.der_domain]:
                             s = State.create(
                                 (i_val, i_der), (v_val, v_der), (o_val, o_der))
