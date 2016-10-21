@@ -1,5 +1,8 @@
 from graphviz import Digraph
 from states import *
+import string
+
+# translate 0, 1 scale to max, + as in exercise statement?
 
 
 def main():
@@ -7,8 +10,18 @@ def main():
 
     g = State.generate_all_valid()
 
+    # j = 1
     for i, state in enumerate(g):
-        dot.node(str(i), str(state))
+        description = string.replace(str(state), '2', 'max')
+        description = string.replace(description, '-1', '-')
+        description = string.replace(description, '1', '+')
+        dot.node(str(i), description)
+        #dot.node(str(i), str(state))
+
+        # to only show numbers, use this:
+        # dot.node(str(i), str(j))
+        # j += 1
+
     for i, s in enumerate(g):
 
         print "%d) %s" % (i + 1, s)
