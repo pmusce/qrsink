@@ -132,7 +132,13 @@ class State():
         return True
 
     def check_influence(self):
-        return self.inflow.val == self.volume.der
+        if self.inflow.val == 0 and self.outflow.val == 0:
+            return self.volume.der == 0
+        if self.inflow.val == 0:
+            return self.volume.der == -1
+        if self.outflow.val == 0:
+            return self.volume.der == 1
+        return True
 
     def generate_successors(self):
         successors = []
@@ -177,8 +183,8 @@ class State():
     def generate_all_valid():
         graph = []
         for i_val in Inflow.domain:
-            for v_der in Volume.der_domain:
-                for v_val in Volume.domain:
+            for v_val in Volume.domain:
+                for v_der in Volume.der_domain:
                     for i_der in Inflow.der_domain:
                         for o_val, o_der in [(o_val, o_der) for o_val in Outflow.domain for o_der in Outflow.der_domain]:
                             s = State.create((i_val, i_der), (v_val, v_der), (o_val, o_der))
