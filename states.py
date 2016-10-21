@@ -161,22 +161,44 @@ class State():
             return False
         if not self.outflow.check_continuity(succ.outflow):
             return False
+
         return True
 
     def check_points(self, succ):
         if self.inflow.is_point() and not self.inflow.is_stable():
             if not self.inflow.apply_der(succ.inflow):
                 return False
+
+            # point to interval and interval to point at the same time
+            if not self.volume.is_point() and self.volume.der != succ.volume.der:
+                return False
+            if not self.outflow.is_point() and self.outflow.der != succ.outflow.der:
+                return False
+
         if self.volume.is_point() and not self.volume.is_stable():
             if not self.volume.apply_der(succ.volume):
                 return False
             if not self.inflow.is_stable() and self.inflow.der != succ.inflow.der:
                 return False
+
+            # point to interval and interval to point at the same time
+            if not self.inflow.is_point() and self.inflow.der != succ.inflow.der:
+                return False
+            if not self.outflow.is_point() and self.outflow.der != succ.outflow.der:
+                return False
+
         if self.outflow.is_point() and not self.outflow.is_stable():
             if not self.outflow.apply_der(succ.outflow):
                 return False
             if not self.inflow.is_stable() and self.inflow.der != succ.inflow.der:
                 return False
+
+            # point to interval and interval to point at the same time
+            if not self.inflow.is_point() and self.inflow.der != succ.inflow.der:
+                return False
+            if not self.volume.is_point() and self.volume.der != succ.volume.der:
+                return False
+
         return True
 
     @staticmethod
@@ -187,7 +209,8 @@ class State():
                 for v_der in Volume.der_domain:
                     for i_der in Inflow.der_domain:
                         for o_val, o_der in [(o_val, o_der) for o_val in Outflow.domain for o_der in Outflow.der_domain]:
-                            s = State.create((i_val, i_der), (v_val, v_der), (o_val, o_der))
+                            s = State.create(
+                                (i_val, i_der), (v_val, v_der), (o_val, o_der))
                             if s.is_valid():
                                 graph.append(s)
         return graph
