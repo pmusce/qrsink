@@ -26,7 +26,7 @@ def main():
 
         print "%d) %s" % (i + 1, s)
         for x in s.generate_successors():
-            print "--> %d | %s" % (g.index(x) + 1, x)
+            # print "--> %d | %s" % (g.index(x) + 1, x)
 
             dot.edge(str(i), str(g.index(x)))
     print "# states = %d" % len(g)
