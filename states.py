@@ -96,13 +96,25 @@ class Outflow(Value):
         return self.val == 0 or self.val == 2
 
 
+class Height(Volume):
+    def __str__(self):
+        return "H[%s,%s]" % (self.val, self.der)
+
+
+class Pressure(Volume):
+    def __str__(self):
+        return "P[%s,%s]" % (self.val, self.der)
+
+
 class State():
-    def __init__(self, inflow, volume, outflow):
+    def __init__(self, inflow, volume, outflow, height, pressure):
         self.model = model.create()
         self.quantities = {}
 
         self.add_quantity('inflow', inflow)
         self.add_quantity('volume', volume)
+        self.add_quantity('height', height)
+        self.add_quantity('pressure', pressure)
         self.add_quantity('outflow', outflow)
 
     def add_quantity(self, key, value):
@@ -122,8 +134,8 @@ class State():
         return True
 
     @staticmethod
-    def create(inflow, volume, outflow):
-        return State(Inflow(inflow), Volume(volume), Outflow(outflow))
+    def create(inflow, volume, outflow, height, pressure):
+        return State(Inflow(inflow), Volume(volume), Outflow(outflow), Height(height), Pressure(pressure))
 
     def is_valid(self, debug):
         for key, qnt in self.quantities.iteritems():
@@ -225,10 +237,13 @@ class State():
     @staticmethod
     def generate_all_valid(debug=False):
         graph = []
-        a = [Inflow.domain, Volume.domain, Inflow.der_domain, Volume.der_domain, Outflow.domain, Outflow.der_domain]
+        a = []
+        for qnt in [Inflow, Volume, Outflow, Height, Pressure]:
+            a.append(qnt.domain)
+            a.append(qnt.der_domain)
 
-        for i_val, v_val, i_der, v_der, o_val, o_der in list(itertools.product(*a)):
-            s = State.create((i_val, i_der), (v_val, v_der), (o_val, o_der))
+        for i_val, i_der, v_val, v_der, o_val, o_der, h_val, h_der, p_val, p_der in list(itertools.product(*a)):
+            s = State.create((i_val, i_der), (v_val, v_der), (o_val, o_der), (h_val, h_der), (p_val, p_der))
             if s.is_valid(debug):
                 if debug:
                     print "%s is a valid state" % s
