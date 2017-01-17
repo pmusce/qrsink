@@ -1,7 +1,13 @@
-# inflow = (0, 1)
+import model
+import itertools
+
+
 class Value():
     def __eq__(self, other):
         return self.val == other.val and self.der == other.der
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def is_stable(self):
         return self.der == 0
@@ -92,33 +98,40 @@ class Outflow(Value):
 
 class State():
     def __init__(self, inflow, volume, outflow):
-        self.inflow = inflow
-        self.volume = volume
-        self.outflow = outflow
+        self.model = model.create()
+        self.quantities = {}
+
+        self.add_quantity('inflow', inflow)
+        self.add_quantity('volume', volume)
+        self.add_quantity('outflow', outflow)
+
+    def add_quantity(self, key, value):
+        self.quantities[key] = value
 
     def __str__(self):
-        return "%s %s %s" % (self.inflow, self.volume, self.outflow)
+        string = ""
+        for key, qnt in self.quantities.iteritems():
+            string += "%s " % (qnt)
+
+        return string
 
     def __eq__(self, other):
-        return self.inflow == other.inflow and self.volume == other.volume and self.outflow == other.outflow
+        for key, qnt in self.quantities.iteritems():
+            if self.quantities[key] != other.quantities[key]:
+                return False
+        return True
 
     @staticmethod
     def create(inflow, volume, outflow):
         return State(Inflow(inflow), Volume(volume), Outflow(outflow))
 
     def is_valid(self, debug):
-        if not self.inflow.is_valid():
-            if debug:
-                print "%s Failed: extreme value check (inflow)" % self
-            return False
-        if not self.volume.is_valid():
-            if debug:
-                print "%s Failed: extreme value check (volume)" % self
-            return False
-        if not self.outflow.is_valid():
-            if debug:
-                print "%s Failed: extreme value check (outflow)" % self
-            return False
+        for key, qnt in self.quantities.iteritems():
+            if not qnt.is_valid():
+                if debug:
+                    print "%s Failed: extreme value check (%s)" % self, key
+                return False
+
         if not self.check_correspondence():
             if debug:
                 print "%s Failed: correspondence check" % self
@@ -129,29 +142,70 @@ class State():
             return False
         if not self.check_influence():
             if debug:
-                print "%s Failed: proportionality check" % self
+                print "%s Failed: influence check" % self
             return False
         return True
 
     def check_proportionality(self):
-        return self.volume.der == self.outflow.der
+        for a, b in self.model.p_prop:
+            if self.quantities[a].der != self.quantities[b].der:
+                return False
+
+        for a, b in self.model.n_prop:
+            if self.quantities[a].der != (self.quantities[b].der * -1):
+                return False
+
+        return True
 
     def check_correspondence(self):
-        if self.volume.val == 0 or self.outflow.val == 0:
-            if self.volume.val != self.outflow.val:
-                return False
-        if self.volume.val == 2 or self.outflow.val == 2:
-            if self.volume.val != self.outflow.val:
-                return False
+        for a, valA, b, valB in self.model.corr:
+            if self.quantities[a].val == valA or self.quantities[b].val == valB:
+                if self.quantities[a].val != self.quantities[b].val:
+                    return False
         return True
 
     def check_influence(self):
-        if self.inflow.val == 0 and self.outflow.val == 0:
-            return self.volume.der == 0
-        if self.inflow.val == 0:
-            return self.volume.der == -1
-        if self.outflow.val == 0:
-            return self.volume.der == 1
+        if self.quantities['inflow'].val == 0 and self.quantities['outflow'].val == 0:
+            return self.quantities['volume'].der == 0
+        if self.quantities['inflow'].val == 0:
+            return self.quantities['volume'].der == -1
+        if self.quantities['outflow'].val == 0:
+            return self.quantities['volume'].der == 1
+        return True
+
+    def check_continuity(self, succ):
+        for key, qnt in self.quantities.iteritems():
+            if not qnt.check_continuity(succ.quantities[key]):
+                print "%s -> %s Dropped: continuity check(%s)" % (self, succ, key)
+                return False
+        return True
+
+    def check_points(self, succ):
+        if not self.check_change_on_instable_point(succ):
+            return False
+
+        for key, qnt in self.quantities.iteritems():
+            if qnt.is_point() and not qnt.is_stable():
+                for key2 in self.quantities:
+                    if key == key2:
+                        continue
+
+                    if key2 in self.model.exogen:
+                        if not self.quantities[key2].is_stable() and self.quantities[key2].der != succ.quantities[key2].der:
+                            print "%s -> %s Dropped: invalid change of derivative for exogenous(%s)" % (self, succ, key2)
+                            return False
+                    else:
+                        if not self.quantities[key2].is_point() and self.quantities[key2].der != succ.quantities[key2].der:
+                            print "%s -> %s Dropped: point to interval and not exogenous interval to point at the same time(%s)" % (self, succ, key2)
+                            return False
+        return True
+
+    def check_change_on_instable_point(self, succ):
+        for key, qnt in self.quantities.iteritems():
+            if qnt.is_point() and not qnt.is_stable():
+                if not qnt.apply_der(succ.quantities[key]):
+                    print "%s -> %s Dropped: check change on instable point failed(%s)" % (self, succ, key)
+                    return False
         return True
 
     def generate_successors(self):
@@ -168,80 +222,16 @@ class State():
 
         return successors
 
-    def check_continuity(self, succ):
-        if not self.inflow.check_continuity(succ.inflow):
-            print "%s -> %s Dropped: continuity check(inflow)" % (self, succ)
-            return False
-        if not self.volume.check_continuity(succ.volume):
-            print "%s -> %s Dropped: continuity check(volume)" % (self, succ)
-            return False
-        if not self.outflow.check_continuity(succ.outflow):
-            print "%s -> %s Dropped: continuity check(outflow)" % (self, succ)
-            return False
-
-        return True
-
-    def check_points(self, succ):
-        if not self.check_change_on_instable_point(succ):
-            return False
-        if self.inflow.is_point() and not self.inflow.is_stable():
-            # point to interval and interval to point at the same time
-            if not self.volume.is_point() and self.volume.der != succ.volume.der:
-                print "%s -> %s Dropped: point to interval and not exogenous interval to point at the same time(volume)" % (self, succ)
-                return False
-            if not self.outflow.is_point() and self.outflow.der != succ.outflow.der:
-                print "%s -> %s Dropped: point to interval and not exogenous interval to point at the same time(outflow)" % (self, succ)
-                return False
-
-        if self.volume.is_point() and not self.volume.is_stable():
-            if not self.inflow.is_stable() and self.inflow.der != succ.inflow.der:
-                print "%s -> %s Dropped: invalid change of derivative for exogenous(inflow)" % (self, succ)
-                return False
-
-            # point to interval and interval to point at the same time
-            if not self.outflow.is_point() and self.outflow.der != succ.outflow.der:
-                print "%s -> %s Dropped: point to interval and not exogenous interval to point at the same time(outflow)" % (self, succ)
-                return False
-
-        if self.outflow.is_point() and not self.outflow.is_stable():
-            if not self.inflow.is_stable() and self.inflow.der != succ.inflow.der:
-                print "%s -> %s Dropped: invalid change of derivative for exogenous(inflow)" % (self, succ)
-                return False
-
-            # point to interval and interval to point at the same time
-            if not self.volume.is_point() and self.volume.der != succ.volume.der:
-                print "%s -> %s Dropped: point to interval and not exogenous interval to point at the same time(volume)" % (self, succ)
-                return False
-
-        return True
-
-    def check_change_on_instable_point(self, succ):
-        if self.inflow.is_point() and not self.inflow.is_stable():
-            if not self.inflow.apply_der(succ.inflow):
-                print "%s -> %s Dropped: check change on instable point failed(inflow)" % (self, succ)
-                return False
-        if self.volume.is_point() and not self.volume.is_stable():
-            if not self.volume.apply_der(succ.volume):
-                print "%s -> %s Dropped: check change on instable point failed(volume)" % (self, succ)
-                return False
-        if self.outflow.is_point() and not self.outflow.is_stable():
-            if not self.outflow.apply_der(succ.outflow):
-                print "%s -> %s Dropped: check change on instable point failed(outflow)" % (self, succ)
-                return False
-        return True
-
     @staticmethod
     def generate_all_valid(debug=False):
         graph = []
-        for i_val in Inflow.domain:
-            for v_val in Volume.domain:
-                for i_der in Inflow.der_domain:
-                    for v_der in Volume.der_domain:
-                        for o_val, o_der in [(o_val, o_der) for o_val in Outflow.domain for o_der in Outflow.der_domain]:
-                            s = State.create(
-                                (i_val, i_der), (v_val, v_der), (o_val, o_der))
-                            if s.is_valid(debug):
-                                if debug:
-                                    print "%s is a valid state" % s
-                                graph.append(s)
+        a = [Inflow.domain, Volume.domain, Inflow.der_domain, Volume.der_domain, Outflow.domain, Outflow.der_domain]
+
+        for i_val, v_val, i_der, v_der, o_val, o_der in list(itertools.product(*a)):
+            s = State.create((i_val, i_der), (v_val, v_der), (o_val, o_der))
+            if s.is_valid(debug):
+                if debug:
+                    print "%s is a valid state" % s
+                graph.append(s)
+
         return graph
