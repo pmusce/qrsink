@@ -1,6 +1,8 @@
 import model
 import itertools
 
+debug = True
+
 
 class Value():
     def __eq__(self, other):
@@ -137,11 +139,11 @@ class State():
     def create(inflow, volume, outflow, height, pressure):
         return State(Inflow(inflow), Volume(volume), Outflow(outflow), Height(height), Pressure(pressure))
 
-    def is_valid(self, debug):
+    def is_valid(self):
         for key, qnt in self.quantities.iteritems():
             if not qnt.is_valid():
                 if debug:
-                    print "%s Failed: extreme value check (%s)" % self, key
+                    print "%s Failed: extreme value check (%s)" % (self, key)
                 return False
 
         if not self.check_correspondence():
@@ -235,7 +237,7 @@ class State():
         return successors
 
     @staticmethod
-    def generate_all_valid(debug=False):
+    def generate_all_valid():
         graph = []
         a = []
         for qnt in [Inflow, Volume, Outflow, Height, Pressure]:
@@ -244,7 +246,7 @@ class State():
 
         for i_val, i_der, v_val, v_der, o_val, o_der, h_val, h_der, p_val, p_der in list(itertools.product(*a)):
             s = State.create((i_val, i_der), (v_val, v_der), (o_val, o_der), (h_val, h_der), (p_val, p_der))
-            if s.is_valid(debug):
+            if s.is_valid():
                 if debug:
                     print "%s is a valid state" % s
                 graph.append(s)
